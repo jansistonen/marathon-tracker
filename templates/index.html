@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="grid two-up">
+  <article class="card">
+    <h2>Lisää osallistuja</h2>
+    <form method="post" action="{{ url_for('create_participant') }}" class="stack">
+      <label>
+        <span>Nimi</span>
+        <input type="text" name="display_name" placeholder="Esim. Matti" required>
+      </label>
+      <label>
+        <span>Avatar</span>
+        <div class="avatar-picker">
+          {% for avatar in avatar_choices %}
+            <label class="avatar-option">
+              <input type="radio" name="avatar" value="{{ avatar }}" {% if loop.first %}checked{% endif %}>
+              <span>{{ avatar }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      </label>
+      <button type="submit">Liity mukaan</button>
+    </form>
+  </article>
+
+  <article class="card">
+    <h2>Lisää oma lenkki</h2>
+    <form method="post" action="{{ url_for('create_run') }}" class="stack">
+      <label>
+        <span>Oma profiili</span>
+        <select name="participant_public_id" required>
+          <option value="">Valitse</option>
+          {% for item in dashboards %}
+            <option value="{{ item.participant.public_id }}" {% if item.owns_profile %}selected{% endif %}>
+              {{ item.participant.avatar }} {{ item.participant.display_name }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span>Päivämäärä</span>
+        <input type="date" name="run_date" required>
+      </label>
+      <label>
+        <span>Kilometrit</span>
+        <input type="number" name="distance_km" min="0.1" max="200" step="0.1" placeholder="8.5" required>
+      </label>
+      <label>
+        <span>Muistiinpano</span>
+        <input type="text" name="note" maxlength="160" placeholder="Pitkä lenkki, palauttava, intervallit...">
+      </label>
+      <button type="submit">Tallenna suoritus</button>
+    </form>
+    <p class="tiny muted">Ensimmäisellä kerralla valitse oma profiilisi alta “Tee tästä oma profiili” -napilla.</p>
+  </article>
+</section>
+
+<section class="card">
+  <div class="row space-between wrap gap-md">
+    <div>
+      <h2>Kokonaistulokset</h2>
+      <p class="muted">Yksi yhteinen palkki, jossa avatarit sijoittuvat kokonaiskilometrien mukaan.</p>
+    </div>
+    <div class="goal-pills">
+      <span class="pill">Viikkotavoite {{ weekly_goal }} km</span>
+      <span class="pill">Kuukausitavoite {{ monthly_goal }} km</span>
+    </div>
+  </div>
+
+  <div class="leaderboard-track-wrap">
+    <div class="leaderboard-track"></div>
+    {% for item in dashboards %}
+      <div class="leaderboard-marker" style="left: calc({{ item.leaderboard_pct }}% - 22px);">
+        <div class="mini-runner">
+          <div class="mini-head">{{ item.participant.avatar }}</div>
+          <div class="mini-body"></div>
+        </div>
+        <div class="marker-label">
+          <strong>{{ item.participant.display_name }}</strong>
+          <span>{{ item.all_time_km }} km</span>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="card">
+  <h2>Osallistujat</h2>
+  <div class="participants-grid">
+    {% for item in dashboards %}
+      <article class="participant-card">
+        <div class="row space-between align-start gap-md">
+          <div class="row gap-md align-center">
+            <div class="avatar-badge">{{ item.participant.avatar }}</div>
+            <div>
+              <h3>{{ item.participant.display_name }}</h3>
+              <p class="muted">All time: <strong>{{ item.all_time_km }} km</strong> · Streak: <strong>{{ item.current_streak }}</strong></p>
+            </div>
+          </div>
+          <div class="actions">
+            {% if not item.owns_profile %}
+            <form method="post" action="{{ url_for('claim_participant', public_id=item.participant.public_id) }}">
+              <button type="submit" class="secondary">Tee tästä oma profiili</button>
+            </form>
+            {% else %}
+            <span class="pill accent">Oma profiili</span>
+            <form method="post" action="{{ url_for('archive_participant', public_id=item.participant.public_id) }}" onsubmit="return confirm('Arkistoidaanko käyttäjä? Historia säilyy.');">
+              <button type="submit" class="danger ghost">Arkistoi</button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="metrics-grid">
+          <div>
+            <p class="metric-label">Tämä viikko</p>
+            <p class="metric-value">{{ item.week_km }} / {{ weekly_goal }}</p>
+            <div class="progress"><span style="width: {{ [100, (item.week_km / weekly_goal * 100) if weekly_goal else 0]|min }}%"></span></div>
+            <p class="tiny muted">Puuttuu {{ item.week_remaining }} km</p>
+          </div>
+          <div>
+            <p class="metric-label">Tämä kuukausi</p>
+            <p class="metric-value">{{ item.month_km }} / {{ monthly_goal }}</p>
+            <div class="progress"><span style="width: {{ [100, (item.month_km / monthly_goal * 100) if monthly_goal else 0]|min }}%"></span></div>
+            <p class="tiny muted">Puuttuu {{ item.month_remaining }} km</p>
+          </div>
+        </div>
+
+        <div>
+          <p class="metric-label">Viimeiset 6 viikkoa</p>
+          <div class="history-grid">
+            {% for week in item.history %}
+              <div class="history-box {% if week.hit_goal %}hit{% endif %}">
+                <strong>{{ week.label }}</strong>
+                <span>{{ week.km }} km</span>
+                <small>{% if week.hit_goal %}tavoite täynnä{% else %}kesken{% endif %}</small>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="grid two-up">
+  <article class="card">
+    <h2>Viimeisimmät suoritukset</h2>
+    <div class="entry-list">
+      {% for entry in recent_entries %}
+        <div class="entry-row">
+          <div>
+            <strong>{{ entry.participant.avatar }} {{ entry.participant.display_name }}</strong>
+            <p class="muted">{{ entry.run_date.strftime('%d.%m.%Y') }}{% if entry.note %} · {{ entry.note }}{% endif %}</p>
+          </div>
+          <strong>{{ entry.distance_km }} km</strong>
+        </div>
+      {% else %}
+        <p class="muted">Ei vielä suorituksia.</p>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="card">
+    <h2>Arkistoidut käyttäjät</h2>
+    <div class="entry-list">
+      {% for participant in archived %}
+        <div class="entry-row">
+          <div>
+            <strong>{{ participant.avatar }} {{ participant.display_name }}</strong>
+            <p class="muted">Virheellinen tai poistettu aktiivisesta näkymästä</p>
+          </div>
+          <form method="post" action="{{ url_for('restore_participant', public_id=participant.public_id) }}">
+            <button type="submit" class="secondary">Palauta</button>
+          </form>
+        </div>
+      {% else %}
+        <p class="muted">Ei arkistoituja käyttäjiä.</p>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+{% endblock %}
