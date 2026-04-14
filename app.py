@@ -37,7 +37,7 @@ if not database_url:
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-db = SQLAlchemy(app)
+db = SQLAlchemy()
 
 WEEKLY_GOAL_KM = 15.0
 MONTHLY_GOAL_KM = 60.0
