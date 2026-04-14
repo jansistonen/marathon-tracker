@@ -97,45 +97,52 @@ def create_app() -> Flask:
                 WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
                 ORDER BY table_schema, table_name
             """)).mappings().all()
-
-            participants_count = None
-            runs_count = None
-            latest_runs = []
-
-            try:
-                participants_count = db.session.execute(
-                    text("SELECT COUNT(*) FROM participants")
-                ).scalar()
-            except Exception as e:
-                participants_count = f"participants query failed: {e}"
-
-            try:
-                runs_count = db.session.execute(
-                    text("SELECT COUNT(*) FROM runs")
-                ).scalar()
-            except Exception as e:
-                runs_count = f"runs query failed: {e}"
-
-            try:
-                latest_runs = db.session.execute(text("""
-                    SELECT *
-                    FROM runs
-                    ORDER BY created_at DESC
-                    LIMIT 5
-                """)).mappings().all()
-                latest_runs = [dict(r) for r in latest_runs]
-            except Exception as e:
-                latest_runs = [f"latest_runs query failed: {e}"]
+    
+            participants_count = Participant.query.count()
+            runs_count = RunEntry.query.count()
+    
+            latest_runs = (
+                RunEntry.query.order_by(RunEntry.created_at.desc())
+                .limit(10)
+                .all()
+            )
+    
+            latest_participants = (
+                Participant.query.order_by(Participant.created_at.desc())
+                .limit(10)
+                .all()
+            )
     
             return {
                 "tables": [dict(t) for t in tables],
                 "participants_count": participants_count,
                 "runs_count": runs_count,
-                "latest_runs": latest_runs,
+                "latest_participants": [
+                    {
+                        "id": p.id,
+                        "display_name": p.display_name,
+                        "normalized_name": p.normalized_name,
+                        "avatar": p.avatar,
+                        "is_active": p.is_active,
+                        "created_at": p.created_at.isoformat(),
+                    }
+                    for p in latest_participants
+                ],
+                "latest_runs": [
+                    {
+                        "id": r.id,
+                        "participant_id": r.participant_id,
+                        "run_date": r.run_date.isoformat(),
+                        "distance_km": r.distance_km,
+                        "note": r.note,
+                        "created_at": r.created_at.isoformat(),
+                    }
+                    for r in latest_runs
+                ],
             }
         except Exception as e:
+            db.session.rollback()
             return {"error": str(e)}, 500
-
     return app
 
 
