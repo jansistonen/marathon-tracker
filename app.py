@@ -23,7 +23,10 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 #BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
+app = Flasj(__name__)
+
 database_url = os.getenv("DATABASE_URL")
+
 print("DATABASE_URL configured:", bool(database_url))
 print("DB target:", database_url.split("@")[-1] if database_url else "missing")
 
