@@ -25,9 +25,9 @@ from sqlalchemy import text
 
 
 
-#BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-app = Flask(__name__)
+'''app = Flask(__name__)
 
 database_url = os.getenv("DATABASE_URL")
 
@@ -36,10 +36,10 @@ print("DB target:", database_url.split("@")[-1] if database_url else "missing")
 
 if not database_url:
     # lokaalia kehitystä varten
-    database_url = "sqlite:///app.db"
+    database_url = "sqlite:///app.db
 
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False'''
 
 db = SQLAlchemy()
 
@@ -64,6 +64,18 @@ def create_app() -> Flask:
     app = Flask(__name__)
     app.config.from_object(Config)
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+    database_url = os.getenv("DATABASE_URL")
+
+    print("DATABASE_URL configured:", bool(database_url))
+    print("DB target:", database_url.split("@")[-1] if database_url else "missing")
+    
+    if not database_url:
+        # lokaalia kehitystä varten
+        database_url = "sqlite:///app.db
+    
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     db.init_app(app)
 
@@ -128,6 +140,8 @@ def create_app() -> Flask:
 
 
 class Participant(db.Model):
+    __tablename__ = "participants"
+    
     id = db.Column(db.Integer, primary_key=True)
     public_id = db.Column(db.String(36), nullable=False, unique=True, default=lambda: str(uuid.uuid4()))
     display_name = db.Column(db.String(80), nullable=False)
@@ -141,8 +155,10 @@ class Participant(db.Model):
 
 
 class RunEntry(db.Model):
+    __tablename__ = "runs"
+    
     id = db.Column(db.Integer, primary_key=True)
-    participant_id = db.Column(db.Integer, db.ForeignKey("participant.id"), nullable=False, index=True)
+    participant_id = db.Column(db.Integer, db.ForeignKey("participants.id"), nullable=False, index=True)
     run_date = db.Column(db.Date, nullable=False, index=True)
     distance_km = db.Column(db.Float, nullable=False)
     note = db.Column(db.String(160), nullable=True)
