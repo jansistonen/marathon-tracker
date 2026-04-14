@@ -21,7 +21,16 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+#BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+
+database_url = os.getenv("DATABASE_URL")
+
+if not database_url:
+    # lokaalia kehitystä varten
+    database_url = "sqlite:///app.db"
+
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy()
 
