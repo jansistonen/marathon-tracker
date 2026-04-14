@@ -21,6 +21,27 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+from sqlalchemy import text
+
+@app.get("/debug-db")
+def debug_db():
+    participant_count = db.session.execute(text("SELECT COUNT(*) FROM participants")).scalar()
+    run_count = db.session.execute(text("SELECT COUNT(*) FROM runs")).scalar()
+    latest_runs = db.session.execute(
+        text("""
+            SELECT participant_id, run_date, distance_km, created_at
+            FROM runs
+            ORDER BY created_at DESC
+            LIMIT 5
+        """)
+    ).mappings().all()
+
+    return {
+        "participants": participant_count,
+        "runs": run_count,
+        "latest_runs": [dict(r) for r in latest_runs],
+    }
+
 #BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
