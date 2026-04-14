@@ -76,28 +76,53 @@ def create_app() -> Flask:
     register_cli(app)
     
 
-    @app.get("/ping")
-    def ping():
-        return "pong"
-
     @app.get("/debug-db")
     def debug_db():
-        participant_count = db.session.execute(text("SELECT COUNT(*) FROM participants")).scalar()
-        run_count = db.session.execute(text("SELECT COUNT(*) FROM runs")).scalar()
-        latest_runs = db.session.execute(
-            text("""
-                SELECT participant_id, run_date, distance_km, created_at
-                FROM runs
-                ORDER BY created_at DESC
-                LIMIT 5
-            """)
-         ).mappings().all()
+        try:
+            tables = db.session.execute(text("""
+                SELECT table_schema, table_name
+                FROM information_schema.tables
+                WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
+                ORDER BY table_schema, table_name
+            """)).mappings().all()
 
-        return {
-            "participants": participant_count,
-            "runs": run_count,
-            "latest_runs": [dict(r) for r in latest_runs],
-        }
+            participants_count = None
+            runs_count = None
+            latest_runs = []
+
+            try:
+                participants_count = db.session.execute(
+                    text("SELECT COUNT(*) FROM participants")
+                ).scalar()
+            except Exception as e:
+                participants_count = f"participants query failed: {e}"
+
+            try:
+                runs_count = db.session.execute(
+                    text("SELECT COUNT(*) FROM runs")
+                ).scalar()
+            except Exception as e:
+                runs_count = f"runs query failed: {e}"
+
+            try:
+                latest_runs = db.session.execute(text("""
+                    SELECT *
+                    FROM runs
+                    ORDER BY created_at DESC
+                    LIMIT 5
+                """)).mappings().all()
+                latest_runs = [dict(r) for r in latest_runs]
+            except Exception as e:
+                latest_runs = [f"latest_runs query failed: {e}"]
+    
+            return {
+                "tables": [dict(t) for t in tables],
+                "participants_count": participants_count,
+                "runs_count": runs_count,
+                "latest_runs": latest_runs,
+            }
+        except Exception as e:
+            return {"error": str(e)}, 500
 
     return app
 
