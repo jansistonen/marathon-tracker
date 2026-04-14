@@ -147,7 +147,7 @@ def create_app() -> Flask:
 
 
 class Participant(db.Model):
-    __tablename__ = "participants"
+    #__tablename__ = "participants"
     
     id = db.Column(db.Integer, primary_key=True)
     public_id = db.Column(db.String(36), nullable=False, unique=True, default=lambda: str(uuid.uuid4()))
@@ -162,10 +162,10 @@ class Participant(db.Model):
 
 
 class RunEntry(db.Model):
-    __tablename__ = "runs"
+    #__tablename__ = "runs"
     
     id = db.Column(db.Integer, primary_key=True)
-    participant_id = db.Column(db.Integer, db.ForeignKey("participants.id"), nullable=False, index=True)
+    participant_id = db.Column(db.Integer, db.ForeignKey("participant.id"), nullable=False, index=True)
     run_date = db.Column(db.Date, nullable=False, index=True)
     distance_km = db.Column(db.Float, nullable=False)
     note = db.Column(db.String(160), nullable=True)
