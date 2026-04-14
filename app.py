@@ -23,7 +23,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 #BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-app = Flasj(__name__)
+app = Flask(__name__)
 
 database_url = os.getenv("DATABASE_URL")
 
